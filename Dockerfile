@@ -1,9 +1,9 @@
-FROM openjdk:8-alpine
+FROM openjdk:8u171-jdk-alpine3.8
 
 # Configuration variables.
 ENV JIRA_HOME     /var/atlassian/jira
 ENV JIRA_INSTALL  /opt/atlassian/jira
-ENV JIRA_VERSION  7.6.4
+ENV JIRA_VERSION  8.5.4
 
 # Install Atlassian JIRA and helper tools and setup initial home
 # directory structure.
@@ -30,24 +30,19 @@ RUN set -x \
     && echo -e                 "\njira.home=$JIRA_HOME" >> "${JIRA_INSTALL}/atlassian-jira/WEB-INF/classes/jira-application.properties" \
     && touch -d "@0"           "${JIRA_INSTALL}/conf/server.xml"
 
-# Use the default unprivileged account. This could be considered bad practice
-# on systems where multiple processes end up being executed by 'daemon' but
-# here we only ever run one process anyway.
 USER daemon:daemon
 
-# Expose default HTTP connector port.
+# Expose Tomcat port
 EXPOSE 8080
 
-# Set volume mount points for installation and home directory. Changes to the
-# home directory needs to be persisted as well as parts of the installation
-# directory due to eg. logs.
-VOLUME ["/var/atlassian/jira", "/opt/atlassian/jira/logs"]
+# Set volumes
+VOLUME ["${JIRA_HOME}", "${JIRA_INSTALL}/logs"]
 
-# Set the default working directory as the installation directory.
-WORKDIR /var/atlassian/jira
+# Set working directory
+WORKDIR ${JIRA_HOME}
 
 COPY "docker-entrypoint.sh" "/"
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
-# Run Atlassian JIRA as a foreground process by default.
-CMD ["/opt/atlassian/jira/bin/start-jira.sh", "-fg"]
+# Start JIRA
+CMD ["/opt/atlassian/jira/bin/catalina.sh", "run"]
